@@ -18,6 +18,7 @@ func NewMetricServer(storage storage.MetricStorage) *MetricServer {
 }
 
 func (s *MetricServer) handleMetricUpdate(w http.ResponseWriter, r *http.Request) {
+
 	path := r.URL.Path
 	parts := strings.Split(path, "/")
 	if len(parts) < 5 {
@@ -28,6 +29,8 @@ func (s *MetricServer) handleMetricUpdate(w http.ResponseWriter, r *http.Request
 	metricType := parts[2]
 	metricName := parts[3]
 	metricValue := parts[4]
+
+	fmt.Println(metricType, metricName, metricValue)
 
 	if metricName == "" {
 		http.Error(w, "Not Found", http.StatusNotFound)
