@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/beslanshapiaev/go-metrics-alerting/internal/storage"
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +21,12 @@ func TestHandleMetricUpdate_Gauge(t *testing.T) {
 
 	req, err := http.NewRequest("POST", url, nil)
 	assert.NoError(t, err, "Failed to create HTTP request")
-
+	vars := map[string]string{
+		"type":  "gauge",
+		"name":  metricName,
+		"value": metricValue,
+	}
+	req = mux.SetURLVars(req, vars)
 	recorder := httptest.NewRecorder()
 
 	handler := http.HandlerFunc(server.handleMetricUpdate)
@@ -38,10 +44,17 @@ func TestHandleMetricUpdate_Counter(t *testing.T) {
 
 	metricName := "TestCounter"
 	metricValue := "42"
-	url := "/update/counter/" + metricName + "/" + metricValue
+	url := "/update/counter/" + metricName + "/" + metricValue + "/"
 
 	req, err := http.NewRequest("POST", url, nil)
 	assert.NoError(t, err, "Failed to create HTTP request")
+
+	vars := map[string]string{
+		"type":  "counter",
+		"name":  metricName,
+		"value": metricValue,
+	}
+	req = mux.SetURLVars(req, vars)
 
 	recorder := httptest.NewRecorder()
 
@@ -65,6 +78,13 @@ func TestHandleMetricUpdate_InvalidType(t *testing.T) {
 
 	req, err := http.NewRequest("POST", url, nil)
 	assert.NoError(t, err, "Failed to create HTTP request")
+
+	vars := map[string]string{
+		"type":  "invalid",
+		"name":  metricName,
+		"value": metricValue,
+	}
+	req = mux.SetURLVars(req, vars)
 
 	recorder := httptest.NewRecorder()
 
@@ -101,8 +121,8 @@ func TestHandleMetricUpdate_MissingName(t *testing.T) {
 }
 
 func TestHandleMetricUpdate_InvalidValue(t *testing.T) {
-	mockStorage := storage.NewMemStorage()
-	server := NewMetricServer(mockStorage)
+	storage := storage.NewMemStorage()
+	server := NewMetricServer(storage)
 
 	metricName := "TestMetric"
 	metricValue := "invalid"
@@ -110,6 +130,13 @@ func TestHandleMetricUpdate_InvalidValue(t *testing.T) {
 
 	req, err := http.NewRequest("POST", url, nil)
 	assert.NoError(t, err, "Failed to create HTTP request")
+
+	vars := map[string]string{
+		"type":  "gauge",
+		"name":  metricName,
+		"value": metricValue,
+	}
+	req = mux.SetURLVars(req, vars)
 
 	recorder := httptest.NewRecorder()
 

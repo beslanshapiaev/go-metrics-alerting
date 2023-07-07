@@ -7,6 +7,7 @@ type MetricStorage interface {
 	AddCounterMetric(name string, value int64)
 	GetGaugeMetric(name string) (float64, bool)
 	GetCounterMetric(name string) (int64, bool)
+	GetAllMetrics() map[string]interface{}
 }
 
 type MemStorage struct {
@@ -51,4 +52,10 @@ func (s *MemStorage) GetCounterMetric(name string) (int64, bool) {
 	defer s.mu.RUnlock()
 	value, ok := s.metrics[name].(int64)
 	return value, ok
+}
+
+func (s *MemStorage) GetAllMetrics() map[string]interface{} {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.metrics
 }
