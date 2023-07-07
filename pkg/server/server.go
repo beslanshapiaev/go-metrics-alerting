@@ -104,11 +104,11 @@ func (s *MetricServer) handleMetricsList(w http.ResponseWriter, r *http.Request)
 
 	for name, value := range metrics {
 		var stringValue string
-		switch value.(type) {
+		switch v := value.(type) {
 		case float64:
-			stringValue = strconv.FormatFloat(value.(float64), 'f', -1, 64)
+			stringValue = strconv.FormatFloat(v, 'f', -1, 64)
 		case int64:
-			stringValue = strconv.FormatInt(value.(int64), 10)
+			stringValue = strconv.FormatInt(v, 10)
 		}
 		html.WriteString("<li>" + name + ": " + stringValue + "</li>")
 	}
