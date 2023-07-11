@@ -34,8 +34,9 @@ func SendMetrics(gaugeMetrics []GaugeMetric, counterMetrics []CounterMetric) err
 
 func sendMetric(metricType, metricName string, metricValue interface{}) error {
 	url := fmt.Sprintf("%s/update/%s/%s/%v", serverAddress, metricType, metricName, metricValue)
+	fmt.Println(url)
 	// fmt.Print(serverAddress)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte{}))
+	req, err := http.NewRequest("POST", "http://"+url, bytes.NewBuffer([]byte{}))
 	if err != nil {
 		return fmt.Errorf("failed to create HTTP request: %v", err)
 	}
