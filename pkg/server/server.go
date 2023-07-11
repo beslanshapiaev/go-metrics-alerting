@@ -16,6 +16,7 @@ type MetricServer struct {
 }
 
 func NewMetricServer(storage storage.MetricStorage) *MetricServer {
+	fmt.Println("сервер создан")
 	return &MetricServer{
 		storage: storage,
 		router:  mux.NewRouter(),
@@ -23,12 +24,12 @@ func NewMetricServer(storage storage.MetricStorage) *MetricServer {
 }
 
 func (s *MetricServer) handleMetricUpdate(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("запрос")
 	vars := mux.Vars(r)
 
 	metricType := vars["type"]
 	metricName := vars["name"]
 	metricValue := vars["value"]
-
 	if metricName == "" {
 		http.Error(w, "Not Found", http.StatusNotFound)
 	}
