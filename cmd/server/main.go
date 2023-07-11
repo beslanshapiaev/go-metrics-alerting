@@ -19,7 +19,7 @@ func main() {
 	flag.Parse()
 	storage := storage.NewMemStorage()
 	metricServer := server.NewMetricServer(storage)
-	err := metricServer.Start(serverEndpoint)
+	err := metricServer.Start("http://" + serverEndpoint)
 	if err != nil {
 		panic(err)
 	}

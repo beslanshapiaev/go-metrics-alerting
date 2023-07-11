@@ -12,7 +12,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&serverAddress, "a", "http://localhost:8080", "Server endpoint address")
+	flag.StringVar(&serverAddress, "a", "localhost:8080", "Server endpoint address")
 }
 
 func SendMetrics(gaugeMetrics []GaugeMetric, counterMetrics []CounterMetric) error {
@@ -33,7 +33,7 @@ func SendMetrics(gaugeMetrics []GaugeMetric, counterMetrics []CounterMetric) err
 }
 
 func sendMetric(metricType, metricName string, metricValue interface{}) error {
-	url := fmt.Sprintf("%s/update/%s/%s/%v", serverAddress, metricType, metricName, metricValue)
+	url := fmt.Sprintf("%s/update/%s/%s/%v", "http://"+serverAddress, metricType, metricName, metricValue)
 	// fmt.Print(serverAddress)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte{}))
 	if err != nil {
