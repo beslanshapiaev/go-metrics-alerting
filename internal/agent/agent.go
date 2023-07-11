@@ -3,6 +3,8 @@ package agent
 import (
 	"flag"
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 )
 
@@ -15,8 +17,18 @@ var gaugeMetrics []GaugeMetric
 var counterMetrics []CounterMetric
 
 func init() {
-	flag.IntVar(&pollInteval, "p", 2, "Poll Interval")
-	flag.IntVar(&reportInterval, "r", 10, "Report interval")
+
+	if val, ok := os.LookupEnv("POLL_INTERVAL"); ok {
+		pollInteval, _ = strconv.Atoi(val)
+	} else {
+		flag.IntVar(&pollInteval, "p", 2, "Poll Interval")
+	}
+
+	if val, ok := os.LookupEnv("REPORT_INTERVAL "); ok {
+		reportInterval, _ = strconv.Atoi(val)
+	} else {
+		flag.IntVar(&reportInterval, "r", 10, "Report interval")
+	}
 }
 
 func RunAgent() {

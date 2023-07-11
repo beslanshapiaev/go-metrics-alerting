@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
 )
 
 var (
@@ -12,7 +13,11 @@ var (
 )
 
 func init() {
-	flag.StringVar(&serverAddress, "a", "localhost:8080", "Server endpoint address")
+	if val, ok := os.LookupEnv("ADDRESS"); ok {
+		serverAddress = val
+	} else {
+		flag.StringVar(&serverAddress, "a", "localhost:8080", "Server endpoint address")
+	}
 }
 
 func SendMetrics(gaugeMetrics []GaugeMetric, counterMetrics []CounterMetric) error {

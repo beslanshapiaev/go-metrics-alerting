@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"os"
 
 	"github.com/beslanshapiaev/go-metrics-alerting/internal/storage"
 	"github.com/beslanshapiaev/go-metrics-alerting/pkg/server"
@@ -12,7 +13,11 @@ var (
 )
 
 func init() {
-	flag.StringVar(&serverEndpoint, "a", "localhost:8080", "Server endpoint address")
+	if val, ok := os.LookupEnv("ADDRESS"); ok {
+		serverEndpoint = val
+	} else {
+		flag.StringVar(&serverEndpoint, "a", "localhost:8080", "Server endpoint address")
+	}
 }
 
 func main() {
