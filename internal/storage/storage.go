@@ -1,6 +1,10 @@
 package storage
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/demdxx/gocast"
+)
 
 type MetricStorage interface {
 	AddGaugeMetric(name string, value float64)
@@ -43,15 +47,15 @@ func (s *MemStorage) AddCounterMetric(name string, value int64) {
 func (s *MemStorage) GetGaugeMetric(name string) (float64, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	value, ok := s.metrics[name].(float64)
-	return value, ok
+	value, ok := s.metrics[name]
+	return gocast.ToFloat64(value), ok
 }
 
 func (s *MemStorage) GetCounterMetric(name string) (int64, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	value, ok := s.metrics[name].(int64)
-	return value, ok
+	value, ok := s.metrics[name]
+	return gocast.ToInt64(value), ok
 }
 
 func (s *MemStorage) GetAllMetrics() map[string]interface{} {
