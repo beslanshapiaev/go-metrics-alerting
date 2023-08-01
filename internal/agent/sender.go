@@ -35,7 +35,6 @@ func SendMetrics(gaugeMetrics []GaugeMetric, counterMetrics []CounterMetric) err
 }
 
 func sendMetric(metricType, metricName string, metricValue interface{}) error {
-	fmt.Println("sendMetric")
 	metric := common.Metric{
 		ID:    metricName,
 		MType: metricType,
@@ -49,7 +48,6 @@ func sendMetric(metricType, metricName string, metricValue interface{}) error {
 	default:
 		return fmt.Errorf("Unsupported metric value type")
 	}
-	fmt.Println("sendMetric")
 	data, err := json.Marshal(metric)
 	if err != nil {
 		return fmt.Errorf("Failed to marshal metric to JSON: %v", err)
