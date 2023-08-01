@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/beslanshapiaev/go-metrics-alerting/internal/middleware"
 	"github.com/beslanshapiaev/go-metrics-alerting/internal/storage"
+
 	"github.com/gorilla/mux"
 )
 
@@ -24,7 +26,7 @@ func NewMetricServer(storage storage.MetricStorage) *MetricServer {
 }
 
 func (s *MetricServer) handleMetricUpdate(w http.ResponseWriter, r *http.Request) {
-	// fmt.Println("запрос")
+	fmt.Println("запрос")
 	vars := mux.Vars(r)
 
 	metricType := vars["type"]
@@ -120,6 +122,7 @@ func (s *MetricServer) handleMetricsList(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *MetricServer) Start(addr string) error {
+	s.router.Use(middleware.LoggingMiddleware)
 	s.router.HandleFunc("/update/{type}/{name}/{value}", s.handleMetricUpdate).Methods("POST")
 	s.router.HandleFunc("/value/{type}/{name}", s.handleMetricValue).Methods("GET")
 	s.router.HandleFunc("/", s.handleMetricsList).Methods("GET")
