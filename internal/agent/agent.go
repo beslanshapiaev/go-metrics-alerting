@@ -112,7 +112,7 @@ func CollectGaugeMetrics() []GaugeMetric {
 func CollectCounterMetrics() []CounterMetric {
 	counter++
 	counterMetrics := []CounterMetric{
-		{Name: "PoolCount", Value: counter},
+		{Name: "PollCount", Value: counter},
 	}
 	return counterMetrics
 }
