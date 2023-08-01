@@ -111,6 +111,7 @@ func CollectGaugeMetrics() []GaugeMetric {
 
 func CollectCounterMetrics() []CounterMetric {
 	counter++
+	fmt.Println(counter)
 	counterMetrics := []CounterMetric{
 		{Name: "PollCount", Value: counter},
 	}

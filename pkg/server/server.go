@@ -111,12 +111,12 @@ func (s *MetricServer) getMetricValue(metricID, metricType string) (*common.Metr
 	case "gauge":
 		metricValue, ok = s.storage.GetGaugeMetric(metricID)
 		if !ok {
-			return nil, fmt.Errorf("Metric not found: %s", metricID)
+			return nil, fmt.Errorf("metric not found: %s", metricID)
 		}
 	default:
 		metricValue, ok = s.storage.GetCounterMetric(metricID)
 		if !ok {
-			return nil, fmt.Errorf("Metric not found: %s", metricID)
+			return nil, fmt.Errorf("metric not found: %s", metricID)
 		}
 		value := float64(metricValue.(int64))
 		metricValue = value
@@ -133,7 +133,7 @@ func (s *MetricServer) getMetricValue(metricID, metricType string) (*common.Metr
 	case int64:
 		metric.Delta = &v
 	default:
-		return nil, fmt.Errorf("Unsupported metric value type")
+		return nil, fmt.Errorf("unsupported metric value type")
 	}
 
 	return metric, nil

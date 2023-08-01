@@ -46,29 +46,29 @@ func sendMetric(metricType, metricName string, metricValue interface{}) error {
 	case int64:
 		metric.Delta = &v
 	default:
-		return fmt.Errorf("Unsupported metric value type")
+		return fmt.Errorf("unsupported metric value type")
 	}
 	data, err := json.Marshal(metric)
 	if err != nil {
-		return fmt.Errorf("Failed to marshal metric to JSON: %v", err)
+		return fmt.Errorf("failed to marshal metric to JSON: %v", err)
 	}
 
 	url := fmt.Sprintf("%s/update/", serverAddress)
 	req, err := http.NewRequest("POST", "http://"+url, bytes.NewBuffer(data))
 	if err != nil {
-		return fmt.Errorf("Failed to create HTTP request: %v", err)
+		return fmt.Errorf("failed to create HTTP request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("Failed to send HTTP request: %v", err)
+		return fmt.Errorf("failed to send HTTP request: %v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Failed to send metric to server. Response status: %s", resp.Status)
+		return fmt.Errorf("failed to send metric to server. Response status: %s", resp.Status)
 	}
 	return nil
 }
