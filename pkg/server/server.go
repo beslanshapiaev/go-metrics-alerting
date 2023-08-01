@@ -234,7 +234,7 @@ func (s *MetricServer) Start(addr string) error {
 	s.router.Use(middleware.LoggingMiddleware)
 	s.router.HandleFunc("/update/{type}/{name}/{value}", s.handleMetricUpdate).Methods("POST")
 	s.router.HandleFunc("/update/", s.handleMetricUpdate).Methods("POST")
-	s.router.HandleFunc("/value/{type}/{name}", s.handleMetricValue).Methods("POST")
+	s.router.HandleFunc("/value/{type}/{name}", s.handleMetricValue).Methods("GET")
 	s.router.HandleFunc("/value/", s.handleMetricValue).Methods("POST")
 	s.router.HandleFunc("/", s.handleMetricsList).Methods("GET")
 	fmt.Printf("Server is listening on %s\n", addr)
