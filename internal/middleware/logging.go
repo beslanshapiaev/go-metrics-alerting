@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"io"
 	"net/http"
 	"os"
 	"time"
@@ -16,12 +15,9 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 
 		startTime := time.Now()
 
-		bodyBytes, _ := io.ReadAll(r.Body)
-
 		logger.Info().
 			Str("method", r.Method).
 			Str("uri", r.RequestURI).
-			Str("body", string(bodyBytes)).
 			Msg("Received request")
 
 		rw := &responseWriter{
