@@ -13,7 +13,7 @@ import (
 
 func TestHandleMetricUpdate_Gauge(t *testing.T) {
 	storage := storage.NewMemStorage()
-	server := NewMetricServer(storage)
+	server := NewMetricServer(ReadConfigFromFlags())
 
 	metricName := "TestGauge"
 	metricValue := "1.23"
@@ -40,7 +40,7 @@ func TestHandleMetricUpdate_Gauge(t *testing.T) {
 
 func TestHandleMetricUpdate_Counter(t *testing.T) {
 	storage := storage.NewMemStorage()
-	server := NewMetricServer(storage)
+	server := NewMetricServer(ReadConfigFromFlags())
 
 	metricName := "TestCounter"
 	metricValue := "42"
@@ -70,7 +70,7 @@ func TestHandleMetricUpdate_Counter(t *testing.T) {
 
 func TestHandleMetricUpdate_InvalidType(t *testing.T) {
 	storage := storage.NewMemStorage()
-	server := NewMetricServer(storage)
+	server := NewMetricServer(ReadConfigFromFlags())
 
 	metricName := "TestMetric"
 	metricValue := "42"
@@ -104,8 +104,7 @@ func TestHandleMetricUpdate_InvalidType(t *testing.T) {
 }
 
 func TestHandleMetricUpdate_MissingName(t *testing.T) {
-	mockStorage := storage.NewMemStorage()
-	server := NewMetricServer(mockStorage)
+	server := NewMetricServer(ReadConfigFromFlags())
 
 	metricValue := "42"
 	url := "/update/gauge/" + metricValue
@@ -121,8 +120,7 @@ func TestHandleMetricUpdate_MissingName(t *testing.T) {
 }
 
 func TestHandleMetricUpdate_InvalidValue(t *testing.T) {
-	storage := storage.NewMemStorage()
-	server := NewMetricServer(storage)
+	server := NewMetricServer(ReadConfigFromFlags())
 
 	metricName := "TestMetric"
 	metricValue := "invalid"

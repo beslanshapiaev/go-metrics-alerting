@@ -1,5 +1,3 @@
-// pkg/server/server.go
-
 package server
 
 import (
@@ -9,26 +7,37 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/beslanshapiaev/go-metrics-alerting/common"
 	"github.com/beslanshapiaev/go-metrics-alerting/internal/middleware"
 	"github.com/beslanshapiaev/go-metrics-alerting/internal/storage"
+	"github.com/beslanshapiaev/go-metrics-alerting/pkg/filestorage"
 
 	"github.com/gorilla/mux"
 )
 
 type MetricServer struct {
-	storage storage.MetricStorage
-	router  *mux.Router
+	storage      storage.MetricStorage
+	router       *mux.Router
+	config       ServerConfig
+	shutdownChan chan os.Signal
 }
 
-func NewMetricServer(storage storage.MetricStorage) *MetricServer {
-	return &MetricServer{
-		storage: storage,
-		router:  mux.NewRouter(),
+func NewMetricServer(config *ServerConfig) *MetricServer {
+	metricServer := &MetricServer{
+		storage:      storage.NewMemStorage(),
+		router:       mux.NewRouter(),
+		config:       *config,
+		shutdownChan: make(chan os.Signal, 1),
 	}
+	signal.Notify(metricServer.shutdownChan, os.Interrupt, syscall.SIGTERM)
+	return metricServer
 }
 
 func (s *MetricServer) handleMetricUpdate(w http.ResponseWriter, r *http.Request) {
@@ -256,7 +265,43 @@ func (s *MetricServer) handleMetricsList(w http.ResponseWriter, r *http.Request)
 	w.Write([]byte(html.String()))
 }
 
-func (s *MetricServer) Start(addr string) error {
+func (s *MetricServer) loadMetricsFromFile() error {
+	filename := s.config.FileStoragePath
+	return filestorage.LoadMetricsFromFile(s.storage, filename)
+}
+
+func (s *MetricServer) saveMetricsToFile() {
+	interval := s.config.StoreInterval
+	if interval == 0 {
+		return
+	}
+
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
+	for {
+		select {
+		case <-s.shutdownChan:
+			s.ShutDown()
+		case <-ticker.C:
+			if err := s.saveMetrics(); err != nil {
+				fmt.Println("Failed to save metrics to file:", err)
+			}
+		}
+	}
+}
+
+func (s *MetricServer) saveMetrics() error {
+	filename := s.config.FileStoragePath
+	return filestorage.SaveMetricsToFile(s.storage, filename)
+}
+
+func (s *MetricServer) Start() error {
+	if s.config.Restore {
+		if err := s.loadMetricsFromFile(); err != nil {
+			fmt.Println("error, failed to load metrics from file:", err)
+		}
+	}
+	go s.saveMetricsToFile()
+
 	s.router.Use(middleware.LoggingMiddleware)
 	s.router.Use(middleware.GzipMiddleware)
 	s.router.HandleFunc("/update/{type}/{name}/{value}", s.handleMetricUpdate).Methods("POST")
@@ -264,6 +309,15 @@ func (s *MetricServer) Start(addr string) error {
 	s.router.HandleFunc("/value/{type}/{name}", s.handleMetricValue).Methods("GET")
 	s.router.HandleFunc("/value/", s.handleMetricValue).Methods("POST")
 	s.router.HandleFunc("/", s.handleMetricsList).Methods("GET")
-	fmt.Printf("Server is listening on %s\n", addr)
-	return http.ListenAndServe(addr, s.router)
+	fmt.Printf("Server is listening on %s\n", s.config.ServerEndpoint)
+	return http.ListenAndServe(s.config.ServerEndpoint, s.router)
+}
+
+func (s *MetricServer) ShutDown() {
+	// close(s.shutdownChan)
+
+	if err := s.saveMetrics(); err != nil {
+		fmt.Println("Failed to save metrics to file:", err)
+	}
+	os.Exit(0)
 }

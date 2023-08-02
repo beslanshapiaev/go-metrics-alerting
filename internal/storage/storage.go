@@ -12,6 +12,7 @@ type MetricStorage interface {
 	GetGaugeMetric(name string) (float64, bool)
 	GetCounterMetric(name string) (int64, bool)
 	GetAllMetrics() map[string]interface{}
+	Reset()
 }
 
 type MemStorage struct {
@@ -62,4 +63,10 @@ func (s *MemStorage) GetAllMetrics() map[string]interface{} {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.metrics
+}
+
+func (m *MemStorage) Reset() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.metrics = make(map[string]interface{})
 }
