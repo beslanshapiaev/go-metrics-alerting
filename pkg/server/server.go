@@ -3,9 +3,11 @@
 package server
 
 import (
+	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -41,19 +43,29 @@ func (s *MetricServer) handleMetricUpdate(w http.ResponseWriter, r *http.Request
 func (s *MetricServer) handleMetricUpdateJSON(w http.ResponseWriter, r *http.Request) {
 	var metric common.Metric
 
-	decoder := json.NewDecoder(r.Body)
+	var reader io.Reader = r.Body
 
 	if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
-		reader, err := gzip.NewReader(r.Body)
+		gzipReader, err := gzip.NewReader(r.Body)
 		if err != nil {
-			http.Error(w, "bad request", http.StatusBadRequest)
+			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
-		defer reader.Close()
-		decoder = json.NewDecoder(reader)
-	}
-	err := decoder.Decode(&metric)
+		defer gzipReader.Close()
 
+		var buf bytes.Buffer
+		teeReader := io.TeeReader(gzipReader, &buf)
+
+		data, err := io.ReadAll(teeReader)
+		if err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		r.Body = io.NopCloser(bytes.NewBuffer(data))
+		reader = &buf
+	}
+
+	err := json.NewDecoder(reader).Decode(&metric)
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
