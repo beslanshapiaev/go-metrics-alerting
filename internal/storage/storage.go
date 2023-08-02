@@ -65,8 +65,8 @@ func (s *MemStorage) GetAllMetrics() map[string]interface{} {
 	return s.metrics
 }
 
-func (m *MemStorage) Reset() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.metrics = make(map[string]interface{})
+func (s *MemStorage) Reset() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.metrics = make(map[string]interface{})
 }
