@@ -118,7 +118,7 @@ func (s *MetricServer) getMetricValue(metricID, metricType string) (*common.Metr
 		if !ok {
 			return nil, fmt.Errorf("metric not found: %s", metricID)
 		}
-		value := float64(metricValue.(int64))
+		value := metricValue.(int64)
 		metricValue = value
 	}
 
