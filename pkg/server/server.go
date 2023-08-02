@@ -3,6 +3,7 @@
 package server
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -39,7 +40,20 @@ func (s *MetricServer) handleMetricUpdate(w http.ResponseWriter, r *http.Request
 
 func (s *MetricServer) handleMetricUpdateJSON(w http.ResponseWriter, r *http.Request) {
 	var metric common.Metric
-	err := json.NewDecoder(r.Body).Decode(&metric)
+
+	decoder := json.NewDecoder(r.Body)
+
+	if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+		reader, err := gzip.NewReader(r.Body)
+		if err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		defer reader.Close()
+		decoder = json.NewDecoder(reader)
+	}
+	err := decoder.Decode(&metric)
+
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -232,6 +246,7 @@ func (s *MetricServer) handleMetricsList(w http.ResponseWriter, r *http.Request)
 
 func (s *MetricServer) Start(addr string) error {
 	s.router.Use(middleware.LoggingMiddleware)
+	s.router.Use(middleware.GzipMiddleware)
 	s.router.HandleFunc("/update/{type}/{name}/{value}", s.handleMetricUpdate).Methods("POST")
 	s.router.HandleFunc("/update/", s.handleMetricUpdate).Methods("POST")
 	s.router.HandleFunc("/value/{type}/{name}", s.handleMetricValue).Methods("GET")

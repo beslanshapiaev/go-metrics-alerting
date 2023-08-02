@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -54,7 +55,8 @@ func sendMetric(metricType, metricName string, metricValue interface{}) error {
 	}
 
 	url := fmt.Sprintf("%s/update/", serverAddress)
-	req, err := http.NewRequest("POST", "http://"+url, bytes.NewBuffer(data))
+	req, err := newGzipRequest("POST", "http://"+url+"/update", data)
+	// req, err := http.NewRequest("POST", "http://"+url, bytes.NewBuffer(data))
 	if err != nil {
 		return fmt.Errorf("failed to create HTTP request: %v", err)
 	}
@@ -71,4 +73,21 @@ func sendMetric(metricType, metricName string, metricValue interface{}) error {
 		return fmt.Errorf("failed to send metric to server. Response status: %s", resp.Status)
 	}
 	return nil
+}
+
+func newGzipRequest(method, url string, body []byte) (*http.Request, error) {
+	var b bytes.Buffer
+	gz := gzip.NewWriter(&b)
+
+	if _, err := gz.Write(body); err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(method, url, &b)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Encoding", "gzip")
+	return req, nil
 }
