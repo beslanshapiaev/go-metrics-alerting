@@ -55,7 +55,7 @@ func sendMetric(metricType, metricName string, metricValue interface{}) error {
 	}
 
 	url := fmt.Sprintf("%s/update/", serverAddress)
-	req, err := newGzipRequest("POST", "http://"+url+"/update", data)
+	req, err := newGzipRequest("POST", "http://"+url, data)
 	// req, err := http.NewRequest("POST", "http://"+url, bytes.NewBuffer(data))
 	if err != nil {
 		return fmt.Errorf("failed to create HTTP request: %v", err)
