@@ -76,18 +76,31 @@ func sendMetric(metricType, metricName string, metricValue interface{}) error {
 }
 
 func newGzipRequest(method, url string, body []byte) (*http.Request, error) {
-	var b bytes.Buffer
-	gz := gzip.NewWriter(&b)
+	// var b bytes.Buffer
+	// gz := gzip.NewWriter(&b)
 
-	if _, err := gz.Write(body); err != nil {
-		return nil, err
-	}
+	// if _, err := gz.Write(body); err != nil {
+	// 	return nil, err
+	// }
 
-	req, err := http.NewRequest(method, url, &b)
+	// req, err := http.NewRequest(method, url, &b)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// req.Header.Set("Content-Encoding", "gzip")
+	// return req, nil
+
+	var compressedData bytes.Buffer
+	gzipWriter := gzip.NewWriter(&compressedData)
+	gzipWriter.Write(body)
+	gzipWriter.Close()
+
+	req, err := http.NewRequest("POST", url, &compressedData)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("Content-Encoding", "application/gzip")
 	return req, nil
 }
