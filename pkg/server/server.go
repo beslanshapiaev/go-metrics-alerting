@@ -22,11 +22,18 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// test
 type MetricServer struct {
+<<<<<<< HEAD
 	storage      storage.MetricStorage
 	router       *mux.Router
 	config       ServerConfig
 	shutdownChan chan os.Signal
+=======
+	storage       storage.MetricStorage
+	router        *mux.Router
+	storeInterval time.Duration
+>>>>>>> iter8
 }
 
 func NewMetricServer(config *ServerConfig) *MetricServer {
@@ -38,6 +45,10 @@ func NewMetricServer(config *ServerConfig) *MetricServer {
 	}
 	signal.Notify(metricServer.shutdownChan, os.Interrupt, syscall.SIGTERM)
 	return metricServer
+}
+
+func (s *MetricServer) SetStoreInterval(interval time.Duration) {
+	s.storeInterval = interval
 }
 
 func (s *MetricServer) handleMetricUpdate(w http.ResponseWriter, r *http.Request) {
@@ -309,6 +320,7 @@ func (s *MetricServer) Start() error {
 	s.router.HandleFunc("/value/{type}/{name}", s.handleMetricValue).Methods("GET")
 	s.router.HandleFunc("/value/", s.handleMetricValue).Methods("POST")
 	s.router.HandleFunc("/", s.handleMetricsList).Methods("GET")
+<<<<<<< HEAD
 	fmt.Printf("Server is listening on %s\n", s.config.ServerEndpoint)
 	return http.ListenAndServe(s.config.ServerEndpoint, s.router)
 }
@@ -320,4 +332,31 @@ func (s *MetricServer) ShutDown() {
 		fmt.Println("Failed to save metrics to file:", err)
 	}
 	os.Exit(0)
+=======
+	fmt.Printf("Server is listening on %s\n", addr)
+
+	if s.storeInterval > 0 {
+		ticker := time.NewTicker(s.storeInterval)
+		go func() {
+			for {
+				<-ticker.C
+				if err := s.storage.SaveToFile(); err != nil {
+					fmt.Printf("Error saving metrics to file: %v\n", err)
+				}
+			}
+		}()
+	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-c
+		if err := s.storage.SaveToFile(); err != nil {
+			fmt.Printf("Error saving metrics to file during graceful shutdown: %v\n", err)
+		}
+		os.Exit(0)
+	}()
+
+	return http.ListenAndServe(addr, s.router)
+>>>>>>> iter8
 }

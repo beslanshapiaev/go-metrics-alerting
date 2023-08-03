@@ -10,9 +10,15 @@ package server
 // 	"github.com/stretchr/testify/assert"
 // )
 
+<<<<<<< HEAD
 // func TestHandleMetricUpdate_Gauge(t *testing.T) {
 // 	storage := storage.NewMemStorage()
 // 	server := NewMetricServer(ReadConfigFromFlags())
+=======
+func TestHandleMetricUpdate_Gauge(t *testing.T) {
+	storage := storage.NewMemStorage("/tmp/metrics-db.json")
+	server := NewMetricServer(storage)
+>>>>>>> iter8
 
 // 	metricName := "TestGauge"
 // 	metricValue := "1.23"
@@ -37,9 +43,15 @@ package server
 // 	assert.Equal(t, 1.23, metric)
 // }
 
+<<<<<<< HEAD
 // // func TestHandleMetricUpdate_Counter(t *testing.T) {
 // // 	storage := storage.NewMemStorage()
 // // 	server := NewMetricServer(ReadConfigFromFlags())
+=======
+func TestHandleMetricUpdate_Counter(t *testing.T) {
+	storage := storage.NewMemStorage("/tmp/metrics-db.json")
+	server := NewMetricServer(storage)
+>>>>>>> iter8
 
 // // 	metricName := "TestCounter"
 // // 	metricValue := "42"
@@ -67,9 +79,15 @@ package server
 // // 	assert.Equal(t, value, metric, "Unexpected counter metric value")
 // // }
 
+<<<<<<< HEAD
 // func TestHandleMetricUpdate_InvalidType(t *testing.T) {
 // 	storage := storage.NewMemStorage()
 // 	server := NewMetricServer(ReadConfigFromFlags())
+=======
+func TestHandleMetricUpdate_InvalidType(t *testing.T) {
+	storage := storage.NewMemStorage("/tmp/metrics-db.json")
+	server := NewMetricServer(storage)
+>>>>>>> iter8
 
 // 	metricName := "TestMetric"
 // 	metricValue := "42"
@@ -102,8 +120,14 @@ package server
 
 // }
 
+<<<<<<< HEAD
 // func TestHandleMetricUpdate_MissingName(t *testing.T) {
 // 	server := NewMetricServer(ReadConfigFromFlags())
+=======
+func TestHandleMetricUpdate_MissingName(t *testing.T) {
+	mockStorage := storage.NewMemStorage("/tmp/metrics-db.json")
+	server := NewMetricServer(mockStorage)
+>>>>>>> iter8
 
 // 	metricValue := "42"
 // 	url := "/update/gauge/" + metricValue
@@ -118,8 +142,14 @@ package server
 // 	assert.Equal(t, http.StatusNotFound, recorder.Code, "Unexpected HTTP status code")
 // }
 
+<<<<<<< HEAD
 // func TestHandleMetricUpdate_InvalidValue(t *testing.T) {
 // 	server := NewMetricServer(ReadConfigFromFlags())
+=======
+func TestHandleMetricUpdate_InvalidValue(t *testing.T) {
+	storage := storage.NewMemStorage("/tmp/metrics-db.json")
+	server := NewMetricServer(storage)
+>>>>>>> iter8
 
 // 	metricName := "TestMetric"
 // 	metricValue := "invalid"
