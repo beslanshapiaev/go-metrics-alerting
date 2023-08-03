@@ -9,8 +9,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/beslanshapiaev/go-metrics-alerting/common"
 	"github.com/beslanshapiaev/go-metrics-alerting/internal/middleware"
@@ -21,8 +25,9 @@ import (
 
 // test
 type MetricServer struct {
-	storage storage.MetricStorage
-	router  *mux.Router
+	storage       storage.MetricStorage
+	router        *mux.Router
+	storeInterval time.Duration
 }
 
 func NewMetricServer(storage storage.MetricStorage) *MetricServer {
@@ -30,6 +35,10 @@ func NewMetricServer(storage storage.MetricStorage) *MetricServer {
 		storage: storage,
 		router:  mux.NewRouter(),
 	}
+}
+
+func (s *MetricServer) SetStoreInterval(interval time.Duration) {
+	s.storeInterval = interval
 }
 
 func (s *MetricServer) handleMetricUpdate(w http.ResponseWriter, r *http.Request) {
@@ -266,5 +275,28 @@ func (s *MetricServer) Start(addr string) error {
 	s.router.HandleFunc("/value/", s.handleMetricValue).Methods("POST")
 	s.router.HandleFunc("/", s.handleMetricsList).Methods("GET")
 	fmt.Printf("Server is listening on %s\n", addr)
+
+	if s.storeInterval > 0 {
+		ticker := time.NewTicker(s.storeInterval)
+		go func() {
+			for {
+				<-ticker.C
+				if err := s.storage.SaveToFile(); err != nil {
+					fmt.Printf("Error saving metrics to file: %v\n", err)
+				}
+			}
+		}()
+	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-c
+		if err := s.storage.SaveToFile(); err != nil {
+			fmt.Printf("Error saving metrics to file during graceful shutdown: %v\n", err)
+		}
+		os.Exit(0)
+	}()
+
 	return http.ListenAndServe(addr, s.router)
 }
