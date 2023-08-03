@@ -6,6 +6,11 @@ import (
 	"github.com/demdxx/gocast"
 )
 
+var (
+	memStorageInstance *MemStorage
+	memStorageOnce     sync.Once
+)
+
 type MetricStorage interface {
 	AddGaugeMetric(name string, value float64)
 	AddCounterMetric(name string, value int64)
@@ -21,9 +26,15 @@ type MemStorage struct {
 }
 
 func NewMemStorage() *MemStorage {
-	return &MemStorage{
-		metrics: make(map[string]interface{}),
-	}
+	// return &MemStorage{
+	// 	metrics: make(map[string]interface{}),
+	// }
+	memStorageOnce.Do(func() {
+		memStorageInstance = &MemStorage{
+			metrics: make(map[string]interface{}),
+		}
+	})
+	return memStorageInstance
 }
 
 func (s *MemStorage) AddGaugeMetric(name string, value float64) {
