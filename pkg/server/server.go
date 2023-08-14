@@ -273,11 +273,9 @@ func (s *MetricServer) handleMetricsList(w http.ResponseWriter, r *http.Request)
 func (s *MetricServer) handlePing(w http.ResponseWriter, r *http.Request) {
 	if s.dataModule.Ping() {
 		w.WriteHeader(http.StatusOK)
-		s.dataModule.Close()
 		return
 	}
 	w.WriteHeader(http.StatusInternalServerError)
-	s.dataModule.Close()
 }
 
 func (s *MetricServer) Start(addr string) error {
