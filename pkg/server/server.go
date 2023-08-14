@@ -278,7 +278,6 @@ func (s *MetricServer) handlePing(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	defer conn.Close(context.Background())
 	if err = conn.Ping(context.Background()); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
