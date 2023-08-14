@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/beslanshapiaev/go-metrics-alerting/common"
+	"github.com/beslanshapiaev/go-metrics-alerting/internal/data"
 	"github.com/beslanshapiaev/go-metrics-alerting/internal/middleware"
 	"github.com/beslanshapiaev/go-metrics-alerting/internal/storage"
 
@@ -28,12 +29,15 @@ type MetricServer struct {
 	storage       storage.MetricStorage
 	router        *mux.Router
 	storeInterval time.Duration
+	dataModule    data.DataModule
 }
 
-func NewMetricServer(storage storage.MetricStorage) *MetricServer {
+func NewMetricServer(storage storage.MetricStorage, connectionString string) *MetricServer {
+	dataModule := data.NewPgModule(connectionString)
 	return &MetricServer{
-		storage: storage,
-		router:  mux.NewRouter(),
+		storage:    storage,
+		router:     mux.NewRouter(),
+		dataModule: dataModule,
 	}
 }
 
@@ -266,6 +270,14 @@ func (s *MetricServer) handleMetricsList(w http.ResponseWriter, r *http.Request)
 	w.Write([]byte(html.String()))
 }
 
+func (s *MetricServer) handlePing(w http.ResponseWriter, r *http.Request) {
+	if s.dataModule.Ping() {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	w.WriteHeader(http.StatusAlreadyReported)
+}
+
 func (s *MetricServer) Start(addr string) error {
 	s.router.Use(middleware.LoggingMiddleware)
 	s.router.Use(middleware.GzipMiddleware)
@@ -274,6 +286,8 @@ func (s *MetricServer) Start(addr string) error {
 	s.router.HandleFunc("/value/{type}/{name}", s.handleMetricValue).Methods("GET")
 	s.router.HandleFunc("/value/", s.handleMetricValue).Methods("POST")
 	s.router.HandleFunc("/", s.handleMetricsList).Methods("GET")
+	s.router.HandleFunc("/ping/", s.handlePing).Methods("GET")
+
 	fmt.Printf("Server is listening on %s\n", addr)
 
 	if s.storeInterval > 0 {
