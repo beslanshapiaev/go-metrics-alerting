@@ -30,19 +30,15 @@ type MetricServer struct {
 	storage       storage.MetricStorage
 	router        *mux.Router
 	storeInterval time.Duration
-	conn          *pgx.Conn
 }
 
-func NewMetricServer(storage storage.MetricStorage, connectionString string) *MetricServer {
-	conn, err := pgx.Connect(context.Background(), connectionString)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "unable to connect to database: %v\n", err)
-	}
+var connectionString string
 
+func NewMetricServer(storage storage.MetricStorage, connString string) *MetricServer {
+	connectionString = connString
 	return &MetricServer{
 		storage: storage,
 		router:  mux.NewRouter(),
-		conn:    conn,
 	}
 }
 
@@ -276,7 +272,13 @@ func (s *MetricServer) handleMetricsList(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *MetricServer) handlePing(w http.ResponseWriter, r *http.Request) {
-	if err := s.conn.Ping(context.Background()); err != nil {
+	conn, err := pgx.Connect(context.Background(), connectionString)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "unable to connect database %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if err = conn.Ping(context.Background()); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
