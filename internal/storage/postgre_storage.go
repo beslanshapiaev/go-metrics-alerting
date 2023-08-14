@@ -3,10 +3,8 @@ package storage
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -158,51 +156,10 @@ func (s *PostgreStorage) GetAllMetrics() map[string]interface{} {
 	return resultMap
 }
 
-// //
-// //
-// // Далее просто копипаста, возможно даже не рабочая. Потом вынесу работу с файлами из интерфейса
 func (s *PostgreStorage) SaveToFile() error {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	data, err := json.Marshal(s.GetAllMetrics())
-	if err != nil {
-		return err
-	}
-
-	path := filepath.Dir(s.filePath)
-	err = os.MkdirAll(path, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(s.filePath, data, 0644)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Metrics saved to file successfully.")
 	return nil
 }
 
 func (s *PostgreStorage) RestoreFromFile() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if _, err := os.Stat(s.filePath); os.IsNotExist(err) {
-		return nil
-	}
-
-	data, err := os.ReadFile(s.filePath)
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(data, s.GetAllMetrics())
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Metrics restored from file successfully.")
 	return nil
 }
