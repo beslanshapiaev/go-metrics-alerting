@@ -29,7 +29,8 @@ func init() {
 	if val, ok := os.LookupEnv("DATABASE_DSN"); ok {
 		dbConnectionString = val
 	} else {
-		flag.StringVar(&dbConnectionString, "d", "host=localhost port=5432 user=postgres password=4756 dbname=test sslmode=disable", "Database connection string")
+		//host=localhost port=5432 user=postgres password=4756 dbname=test sslmode=disable
+		flag.StringVar(&dbConnectionString, "d", "", "Database connection string")
 	}
 
 	if val, ok := os.LookupEnv("STORE_INTERVAL"); ok {
@@ -53,16 +54,22 @@ func init() {
 
 func main() {
 	flag.Parse()
-	storage := storage.NewMemStorage(fileStoragePath)
+	var metricStorage storage.MetricStorage
+
+	if len(dbConnectionString) > 0 {
+		metricStorage = storage.NewPostgreStorage(dbConnectionString, fileStoragePath)
+	} else {
+		metricStorage = storage.NewMemStorage(fileStoragePath)
+	}
 
 	if restore {
-		err := storage.RestoreFromFile()
+		err := metricStorage.RestoreFromFile()
 		if err != nil {
 			fmt.Println("Failed to restore data from file:", err)
 		}
 	}
 
-	metricServer := server.NewMetricServer(storage, dbConnectionString)
+	metricServer := server.NewMetricServer(metricStorage, dbConnectionString)
 	err := metricServer.Start(serverEndpoint)
 	if err != nil {
 		panic(err)
