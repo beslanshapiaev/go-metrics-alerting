@@ -5,6 +5,7 @@ package server
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,9 +18,9 @@ import (
 	"time"
 
 	"github.com/beslanshapiaev/go-metrics-alerting/common"
-	"github.com/beslanshapiaev/go-metrics-alerting/internal/data"
 	"github.com/beslanshapiaev/go-metrics-alerting/internal/middleware"
 	"github.com/beslanshapiaev/go-metrics-alerting/internal/storage"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/gorilla/mux"
 )
@@ -29,15 +30,19 @@ type MetricServer struct {
 	storage       storage.MetricStorage
 	router        *mux.Router
 	storeInterval time.Duration
-	dataModule    data.DataModule
+	conn          *pgx.Conn
 }
 
 func NewMetricServer(storage storage.MetricStorage, connectionString string) *MetricServer {
-	dataModule := data.NewPgModule(connectionString)
+	conn, err := pgx.Connect(context.Background(), connectionString)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "unable to connect to database:", err)
+	}
+
 	return &MetricServer{
-		storage:    storage,
-		router:     mux.NewRouter(),
-		dataModule: dataModule,
+		storage: storage,
+		router:  mux.NewRouter(),
+		conn:    conn,
 	}
 }
 
@@ -271,11 +276,11 @@ func (s *MetricServer) handleMetricsList(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *MetricServer) handlePing(w http.ResponseWriter, r *http.Request) {
-	if s.dataModule.Ping() {
-		w.WriteHeader(http.StatusOK)
+	if err := s.conn.Ping(context.Background()); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusInternalServerError)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (s *MetricServer) Start(addr string) error {

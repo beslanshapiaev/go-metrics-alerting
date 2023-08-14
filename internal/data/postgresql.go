@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -25,8 +24,7 @@ func NewPgModule(connectionString string) *PgModule {
 }
 
 func (m *PgModule) Ping() bool {
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	if err := m.conn.Ping(ctx); err != nil {
+	if err := m.conn.Ping(context.Background()); err != nil {
 		return false
 	}
 	return true
