@@ -278,12 +278,13 @@ func (s *MetricServer) handlePing(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	defer conn.Close(context.Background())
 	if err = conn.Ping(context.Background()); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	conn.Close(context.Background())
+	return
 }
 
 func (s *MetricServer) Start(addr string) error {
@@ -294,7 +295,7 @@ func (s *MetricServer) Start(addr string) error {
 	s.router.HandleFunc("/value/{type}/{name}", s.handleMetricValue).Methods("GET")
 	s.router.HandleFunc("/value/", s.handleMetricValue).Methods("POST")
 	s.router.HandleFunc("/", s.handleMetricsList).Methods("GET")
-	s.router.HandleFunc("/ping/", s.handlePing).Methods("GET")
+	s.router.HandleFunc("/ping", s.handlePing).Methods("GET")
 
 	fmt.Printf("Server is listening on %s\n", addr)
 
