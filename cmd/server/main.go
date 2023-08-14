@@ -15,6 +15,8 @@ var (
 	storeInterval   int
 	fileStoragePath string
 	restore         bool
+
+	dbConnectionString string
 )
 
 func init() {
@@ -22,6 +24,12 @@ func init() {
 		serverEndpoint = val
 	} else {
 		flag.StringVar(&serverEndpoint, "a", "localhost:8080", "Server endpoint address")
+	}
+
+	if val, ok := os.LookupEnv("DATABASE_DSN"); ok {
+		dbConnectionString = val
+	} else {
+		flag.StringVar(&dbConnectionString, "d", "host=localhost port=5432 user=postgres password=4756 dbname=test sslmode=disable", "Database connection string")
 	}
 
 	if val, ok := os.LookupEnv("STORE_INTERVAL"); ok {
@@ -54,7 +62,7 @@ func main() {
 		}
 	}
 
-	metricServer := server.NewMetricServer(storage)
+	metricServer := server.NewMetricServer(storage, dbConnectionString)
 	err := metricServer.Start(serverEndpoint)
 	if err != nil {
 		panic(err)
