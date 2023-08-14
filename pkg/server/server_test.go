@@ -12,7 +12,7 @@ import (
 )
 
 func TestHandleMetricUpdate_Gauge(t *testing.T) {
-	storage := storage.NewMemStorage()
+	storage := storage.NewMemStorage("/tmp/metrics-db.json")
 	server := NewMetricServer(storage)
 
 	metricName := "TestGauge"
@@ -39,7 +39,7 @@ func TestHandleMetricUpdate_Gauge(t *testing.T) {
 }
 
 func TestHandleMetricUpdate_Counter(t *testing.T) {
-	storage := storage.NewMemStorage()
+	storage := storage.NewMemStorage("/tmp/metrics-db.json")
 	server := NewMetricServer(storage)
 
 	metricName := "TestCounter"
@@ -69,7 +69,7 @@ func TestHandleMetricUpdate_Counter(t *testing.T) {
 }
 
 func TestHandleMetricUpdate_InvalidType(t *testing.T) {
-	storage := storage.NewMemStorage()
+	storage := storage.NewMemStorage("/tmp/metrics-db.json")
 	server := NewMetricServer(storage)
 
 	metricName := "TestMetric"
@@ -104,7 +104,7 @@ func TestHandleMetricUpdate_InvalidType(t *testing.T) {
 }
 
 func TestHandleMetricUpdate_MissingName(t *testing.T) {
-	mockStorage := storage.NewMemStorage()
+	mockStorage := storage.NewMemStorage("/tmp/metrics-db.json")
 	server := NewMetricServer(mockStorage)
 
 	metricValue := "42"
@@ -121,7 +121,7 @@ func TestHandleMetricUpdate_MissingName(t *testing.T) {
 }
 
 func TestHandleMetricUpdate_InvalidValue(t *testing.T) {
-	storage := storage.NewMemStorage()
+	storage := storage.NewMemStorage("/tmp/metrics-db.json")
 	server := NewMetricServer(storage)
 
 	metricName := "TestMetric"

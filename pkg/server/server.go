@@ -1,30 +1,108 @@
+// pkg/server/server.go
+
 package server
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
+	"github.com/beslanshapiaev/go-metrics-alerting/common"
+	"github.com/beslanshapiaev/go-metrics-alerting/internal/middleware"
 	"github.com/beslanshapiaev/go-metrics-alerting/internal/storage"
+
 	"github.com/gorilla/mux"
 )
 
+// test
 type MetricServer struct {
-	storage storage.MetricStorage
-	router  *mux.Router
+	storage       storage.MetricStorage
+	router        *mux.Router
+	storeInterval time.Duration
 }
 
 func NewMetricServer(storage storage.MetricStorage) *MetricServer {
-	// fmt.Println("сервер создан")
 	return &MetricServer{
 		storage: storage,
 		router:  mux.NewRouter(),
 	}
 }
 
+func (s *MetricServer) SetStoreInterval(interval time.Duration) {
+	s.storeInterval = interval
+}
+
 func (s *MetricServer) handleMetricUpdate(w http.ResponseWriter, r *http.Request) {
-	// fmt.Println("запрос")
+	contentType := r.Header.Get("Content-Type")
+	if strings.Contains(contentType, "application/json") {
+		s.handleMetricUpdateJSON(w, r)
+	} else {
+		s.handleMetricUpdateForm(w, r)
+	}
+}
+
+func (s *MetricServer) handleMetricUpdateJSON(w http.ResponseWriter, r *http.Request) {
+	var metric common.Metric
+
+	var reader io.Reader = r.Body
+
+	if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+		gzipReader, err := gzip.NewReader(r.Body)
+		if err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		defer gzipReader.Close()
+
+		var buf bytes.Buffer
+		teeReader := io.TeeReader(gzipReader, &buf)
+
+		data, err := io.ReadAll(teeReader)
+		if err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		r.Body = io.NopCloser(bytes.NewBuffer(data))
+		reader = &buf
+	}
+
+	err := json.NewDecoder(reader).Decode(&metric)
+	if err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	switch metric.MType {
+	case "gauge":
+		s.storage.AddGaugeMetric(metric.ID, *metric.Value)
+	case "counter":
+		s.storage.AddCounterMetric(metric.ID, *metric.Delta)
+	default:
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	updatedMetric, err := s.getMetricValue(metric.ID, metric.MType)
+	if err != nil {
+		http.Error(w, "Not Found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(updatedMetric)
+}
+
+func (s *MetricServer) handleMetricUpdateForm(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	metricType := vars["type"]
@@ -61,7 +139,76 @@ func (s *MetricServer) handleMetricUpdate(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusOK)
 }
 
+func (s *MetricServer) getMetricValue(metricID, metricType string) (*common.Metric, error) {
+	var metricValue interface{}
+	var ok bool
+
+	switch metricType {
+	case "gauge":
+		metricValue, ok = s.storage.GetGaugeMetric(metricID)
+		if !ok {
+			return nil, fmt.Errorf("metric not found: %s", metricID)
+		}
+	default:
+		metricValue, ok = s.storage.GetCounterMetric(metricID)
+		if !ok {
+			return nil, fmt.Errorf("metric not found: %s", metricID)
+		}
+		value := metricValue.(int64)
+		metricValue = value
+	}
+
+	metric := &common.Metric{
+		ID:    metricID,
+		MType: metricType,
+	}
+
+	switch v := metricValue.(type) {
+	case float64:
+		metric.Value = &v
+	case int64:
+		metric.Delta = &v
+	default:
+		return nil, fmt.Errorf("unsupported metric value type")
+	}
+
+	return metric, nil
+}
+
 func (s *MetricServer) handleMetricValue(w http.ResponseWriter, r *http.Request) {
+	contentType := r.Header.Get("Content-Type")
+	if strings.Contains(contentType, "application/json") {
+		s.handleMetricValueJSON(w, r)
+	} else {
+		s.handleMetricValueForm(w, r)
+	}
+}
+
+func (s *MetricServer) handleMetricValueJSON(w http.ResponseWriter, r *http.Request) {
+	var metric common.Metric
+	err := json.NewDecoder(r.Body).Decode(&metric)
+	if err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	if metric.ID == "" || metric.MType == "" {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	metricValue, err := s.getMetricValue(metric.ID, metric.MType)
+	if err != nil {
+		http.Error(w, "Not Found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(metricValue)
+}
+
+func (s *MetricServer) handleMetricValueForm(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	metricType := vars["type"]
 	metricName := vars["name"]
@@ -120,9 +267,36 @@ func (s *MetricServer) handleMetricsList(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *MetricServer) Start(addr string) error {
+	s.router.Use(middleware.LoggingMiddleware)
+	s.router.Use(middleware.GzipMiddleware)
 	s.router.HandleFunc("/update/{type}/{name}/{value}", s.handleMetricUpdate).Methods("POST")
+	s.router.HandleFunc("/update/", s.handleMetricUpdate).Methods("POST")
 	s.router.HandleFunc("/value/{type}/{name}", s.handleMetricValue).Methods("GET")
+	s.router.HandleFunc("/value/", s.handleMetricValue).Methods("POST")
 	s.router.HandleFunc("/", s.handleMetricsList).Methods("GET")
 	fmt.Printf("Server is listening on %s\n", addr)
+
+	if s.storeInterval > 0 {
+		ticker := time.NewTicker(s.storeInterval)
+		go func() {
+			for {
+				<-ticker.C
+				if err := s.storage.SaveToFile(); err != nil {
+					fmt.Printf("Error saving metrics to file: %v\n", err)
+				}
+			}
+		}()
+	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-c
+		if err := s.storage.SaveToFile(); err != nil {
+			fmt.Printf("Error saving metrics to file during graceful shutdown: %v\n", err)
+		}
+		os.Exit(0)
+	}()
+
 	return http.ListenAndServe(addr, s.router)
 }
