@@ -32,3 +32,7 @@ func (m *PgModule) Ping() bool {
 	}
 	return true
 }
+
+func (m *PgModule) Close() {
+	m.conn.Close(context.Background())
+}
