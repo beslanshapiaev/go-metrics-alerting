@@ -277,6 +277,7 @@ func (s *MetricServer) handlePing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusInternalServerError)
+	s.dataModule.Close()
 }
 
 func (s *MetricServer) Start(addr string) error {
