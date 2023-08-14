@@ -36,7 +36,7 @@ type MetricServer struct {
 func NewMetricServer(storage storage.MetricStorage, connectionString string) *MetricServer {
 	conn, err := pgx.Connect(context.Background(), connectionString)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "unable to connect to database:", err)
+		fmt.Fprintf(os.Stderr, "unable to connect to database: %v\n", err)
 	}
 
 	return &MetricServer{
