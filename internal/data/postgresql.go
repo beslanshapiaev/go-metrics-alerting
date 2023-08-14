@@ -15,7 +15,7 @@ type PgModule struct {
 func NewPgModule(connectionString string) *PgModule {
 	conn, err := pgx.Connect(context.Background(), connectionString)
 	if err != nil {
-		fmt.Fprint(os.Stderr, "Unable to connect to database: %v\n", err)
+		fmt.Fprint(os.Stderr, "Unable to connect to database: ", err)
 		os.Exit(1)
 	}
 	return &PgModule{
