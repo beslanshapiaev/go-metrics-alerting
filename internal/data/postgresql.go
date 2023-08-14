@@ -16,7 +16,7 @@ func NewPgModule(connectionString string) *PgModule {
 	conn, err := pgx.Connect(context.Background(), connectionString)
 	if err != nil {
 		fmt.Fprint(os.Stderr, "Unable to connect to database: ", err)
-		os.Exit(1)
+		return nil
 	}
 	return &PgModule{
 		conn: conn,
@@ -24,6 +24,9 @@ func NewPgModule(connectionString string) *PgModule {
 }
 
 func (m *PgModule) Ping() bool {
+	if m.conn != nil {
+		return false
+	}
 	if err := m.conn.Ping(context.Background()); err != nil {
 		return false
 	}
