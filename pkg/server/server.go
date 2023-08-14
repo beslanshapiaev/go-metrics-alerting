@@ -284,7 +284,6 @@ func (s *MetricServer) handlePing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	return
 }
 
 func (s *MetricServer) Start(addr string) error {
