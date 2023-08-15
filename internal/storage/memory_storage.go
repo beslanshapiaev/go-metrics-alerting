@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/beslanshapiaev/go-metrics-alerting/common"
 	"github.com/demdxx/gocast"
 )
 
@@ -105,5 +106,27 @@ func (s *MemStorage) RestoreFromFile() error {
 	}
 
 	fmt.Println("Metrics restored from file successfully.")
+	return nil
+}
+
+func (s *MemStorage) AddMetricsBatch(metrics []common.Metric) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, v := range metrics {
+
+		if v.MType == "gauge" {
+			s.metrics[v.ID] = *v.Value
+		} else if v.MType == "counter" {
+
+			if existingValue, ok := s.metrics[v.ID]; ok {
+				if currentValue, ok := existingValue.(int64); ok {
+					s.metrics[v.ID] = currentValue + *v.Delta
+				}
+			} else {
+				s.metrics[v.ID] = *v.Delta
+			}
+		}
+	}
+
 	return nil
 }

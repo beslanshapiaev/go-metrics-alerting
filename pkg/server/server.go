@@ -55,6 +55,43 @@ func (s *MetricServer) handleMetricUpdate(w http.ResponseWriter, r *http.Request
 	}
 }
 
+func (s *MetricServer) handleMetricUpdates(w http.ResponseWriter, r *http.Request) {
+	var metrics []common.Metric
+
+	var reader io.Reader = r.Body
+
+	if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+		gzipReader, err := gzip.NewReader(r.Body)
+		if err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		defer gzipReader.Close()
+
+		var buf bytes.Buffer
+		teeReader := io.TeeReader(gzipReader, &buf)
+
+		data, err := io.ReadAll(teeReader)
+		if err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		r.Body = io.NopCloser(bytes.NewBuffer(data))
+		reader = &buf
+	}
+	err := json.NewDecoder(reader).Decode(&metrics)
+	if err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	err = s.storage.AddMetricsBatch(metrics)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func (s *MetricServer) handleMetricUpdateJSON(w http.ResponseWriter, r *http.Request) {
 	var metric common.Metric
 
@@ -291,6 +328,7 @@ func (s *MetricServer) Start(addr string) error {
 	s.router.Use(middleware.GzipMiddleware)
 	s.router.HandleFunc("/update/{type}/{name}/{value}", s.handleMetricUpdate).Methods("POST")
 	s.router.HandleFunc("/update/", s.handleMetricUpdate).Methods("POST")
+	s.router.HandleFunc("/updates/", s.handleMetricUpdates).Methods("POST")
 	s.router.HandleFunc("/value/{type}/{name}", s.handleMetricValue).Methods("GET")
 	s.router.HandleFunc("/value/", s.handleMetricValue).Methods("POST")
 	s.router.HandleFunc("/", s.handleMetricsList).Methods("GET")

@@ -80,6 +80,34 @@ func (s *PostgreStorage) AddCounterMetric(name string, value int64) {
 	}
 }
 
+func (s *PostgreStorage) AddMetricsBatch(metrics []common.Metric) error {
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range metrics {
+		_, err := tx.Exec(ctx, "delete from practicum.metrics where id = $1", v.ID)
+		if err != nil {
+			tx.Rollback(ctx)
+			return err
+		}
+		_, err = tx.Exec(ctx, "insert into practicum.metrics (id, type, delta, value) values ($1, $2, $3, $4)", v.ID, v.MType, v.Delta, v.Value)
+		if err != nil {
+			tx.Rollback(ctx)
+			return err
+		}
+	}
+	return tx.Commit(ctx)
+}
+
 func (s *PostgreStorage) GetGaugeMetric(name string) (float64, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
