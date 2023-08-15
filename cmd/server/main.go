@@ -30,7 +30,7 @@ func init() {
 		dbConnectionString = val
 	} else {
 		//host=localhost port=5432 user=postgres password=4756 dbname=test sslmode=disable
-		flag.StringVar(&dbConnectionString, "d", "", "Database connection string")
+		flag.StringVar(&dbConnectionString, "d", "host=localhost port=5432 user=postgres password=4756 dbname=test sslmode=disable", "Database connection string")
 	}
 
 	if val, ok := os.LookupEnv("STORE_INTERVAL"); ok {
