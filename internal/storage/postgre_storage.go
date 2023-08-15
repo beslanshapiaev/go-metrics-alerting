@@ -25,9 +25,10 @@ func NewPostgreStorage(connString string, filePath string) *PostgreStorage {
 		os.Exit(1)
 	}
 	// defer conn.Close(context.Background())
-
-	connection.Exec(context.Background(), "CREATE SCHEMA IF NOT EXISTS practicum AUTHORIZATION pg_database_owner; \n")
-	connection.Exec(context.Background(), "CREATE TABLE IF NOT EXISTS practicum.metrics"+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	connection.Exec(ctx, "CREATE SCHEMA IF NOT EXISTS practicum AUTHORIZATION pg_database_owner; \n")
+	connection.Exec(ctx, "CREATE TABLE IF NOT EXISTS practicum.metrics"+
 		"(id varchar(40), type varchar(40), delta integer, value double precision)")
 	return &PostgreStorage{
 		conn:     *connection,
