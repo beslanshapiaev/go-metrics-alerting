@@ -22,7 +22,7 @@ func NewPostgreStorage(connString string, filePath string) *PostgreStorage {
 	connection, err := pgx.Connect(context.Background(), connString)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
-		os.Exit(1)
+		// os.Exit(1)
 	}
 	// defer conn.Close(context.Background())
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
@@ -83,8 +83,8 @@ func (s *PostgreStorage) AddCounterMetric(name string, value int64) {
 
 func (s *PostgreStorage) AddMetricsBatch(metrics []common.Metric) error {
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	// s.mu.Lock()
+	// defer s.mu.Unlock()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
 	defer cancel()
