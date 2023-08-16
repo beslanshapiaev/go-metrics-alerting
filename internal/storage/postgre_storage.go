@@ -87,7 +87,7 @@ func (s *PostgreStorage) AddMetricsBatch(metrics []common.Metric) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
 	defer cancel()
 	fmt.Println("12")
 
