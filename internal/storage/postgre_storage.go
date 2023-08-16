@@ -137,10 +137,10 @@ func (s *PostgreStorage) GetCounterMetric(name string) (int64, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	var err error
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	// defer cancel()
 
-	row := s.conn.QueryRow(ctx, "SELECT * FROM practicum.metrics where type = $1 and id = $2", "counter", name)
+	row := s.conn.QueryRow(context.Background(), "SELECT * FROM practicum.metrics where type = $1 and id = $2", "counter", name)
 
 	var value sql.NullFloat64
 	var typeValue string
