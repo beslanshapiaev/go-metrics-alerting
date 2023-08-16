@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strconv"
 	"time"
+
+	"github.com/beslanshapiaev/go-metrics-alerting/common"
 )
 
 var (
@@ -17,6 +19,7 @@ var (
 
 var gaugeMetrics []GaugeMetric
 var counterMetrics []CounterMetric
+var metrics []common.Metric
 
 func init() {
 	if val, ok := os.LookupEnv("POLL_INTERVAL"); ok {
@@ -43,8 +46,8 @@ func collectMetrics() {
 	ticker := time.NewTicker(time.Duration(pollInteval) * time.Second)
 	for {
 		<-ticker.C
-		gaugeMetrics = CollectGaugeMetrics()
-		counterMetrics = CollectCounterMetrics()
+		metrics = CollectGaugeMetrics()
+		metrics = append(metrics, CollectCounterMetrics()...)
 	}
 }
 
@@ -52,7 +55,7 @@ func sendMetrics() {
 	ticker := time.NewTicker(time.Duration(reportInterval) * time.Second)
 	for {
 		<-ticker.C
-		if err := SendMetrics(gaugeMetrics, counterMetrics); err != nil {
+		if err := SendMetricsBatch(metrics); err != nil {
 			fmt.Println("Failed to send metrics:", err)
 		}
 	}
@@ -72,7 +75,9 @@ func GetRandomValue() float64 {
 	return rand.Float64() * 100
 }
 
-func CollectGaugeMetrics() []GaugeMetric {
+func CollectGaugeMetrics() []common.Metric {
+	var metrics []common.Metric
+
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
@@ -106,16 +111,34 @@ func CollectGaugeMetrics() []GaugeMetric {
 		{Name: "TotalAlloc", Value: float64(memStats.TotalAlloc)},
 	}
 	gaugeMetrics = append(gaugeMetrics, GaugeMetric{Name: "RandomValue", Value: GetRandomValue()})
-	return gaugeMetrics
+
+	for _, v := range gaugeMetrics {
+		metrics = append(metrics, common.Metric{
+			ID:    v.Name,
+			MType: "Gauge",
+			Delta: nil,
+			Value: &v.Value,
+		})
+	}
+	return metrics
 }
 
-func CollectCounterMetrics() []CounterMetric {
+func CollectCounterMetrics() []common.Metric {
+	var metrics []common.Metric
 	counter++
 	fmt.Println(counter)
 	counterMetrics := []CounterMetric{
 		{Name: "PollCount", Value: counter},
 	}
-	return counterMetrics
+	for _, v := range counterMetrics {
+		metrics = append(metrics, common.Metric{
+			ID:    v.Name,
+			MType: "Counter",
+			Delta: &v.Value,
+			Value: nil,
+		})
+	}
+	return metrics
 }
 
 var counter int64 = 0
