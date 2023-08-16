@@ -82,20 +82,17 @@ func (s *PostgreStorage) AddCounterMetric(name string, value int64) {
 }
 
 func (s *PostgreStorage) AddMetricsBatch(metrics []common.Metric) error {
-	fmt.Println("11")
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	fmt.Println("12")
 
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
-	fmt.Println("13")
 
 	for _, v := range metrics {
 		_, err := tx.Exec(ctx, "delete from practicum.metrics where id = $1", v.ID)
@@ -109,7 +106,6 @@ func (s *PostgreStorage) AddMetricsBatch(metrics []common.Metric) error {
 			return err
 		}
 	}
-	fmt.Println("14")
 
 	return tx.Commit(ctx)
 }

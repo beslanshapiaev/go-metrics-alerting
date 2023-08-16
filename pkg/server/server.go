@@ -61,12 +61,14 @@ func (s *MetricServer) handleMetricUpdates(w http.ResponseWriter, r *http.Reques
 	var reader io.Reader = r.Body
 
 	if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+		fmt.Println("1")
 		gzipReader, err := gzip.NewReader(r.Body)
 		if err != nil {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
 		defer gzipReader.Close()
+		fmt.Println("2")
 
 		var buf bytes.Buffer
 		teeReader := io.TeeReader(gzipReader, &buf)
@@ -78,12 +80,16 @@ func (s *MetricServer) handleMetricUpdates(w http.ResponseWriter, r *http.Reques
 		}
 		r.Body = io.NopCloser(bytes.NewBuffer(data))
 		reader = &buf
+		fmt.Println("3")
+
 	}
+
 	err := json.NewDecoder(reader).Decode(&metrics)
 	if err != nil {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
+
 	err = s.storage.AddMetricsBatch(metrics)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
