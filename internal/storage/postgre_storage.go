@@ -25,10 +25,10 @@ func NewPostgreStorage(connString string, filePath string) *PostgreStorage {
 		os.Exit(1)
 	}
 	// defer conn.Close(context.Background())
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
-	defer cancel()
-	connection.Exec(ctx, "CREATE SCHEMA IF NOT EXISTS practicum AUTHORIZATION pg_database_owner; \n")
-	connection.Exec(ctx, "CREATE TABLE IF NOT EXISTS practicum.metrics"+
+	// ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
+	// defer cancel()
+	connection.Exec(context.Background(), "CREATE SCHEMA IF NOT EXISTS practicum AUTHORIZATION pg_database_owner; \n")
+	connection.Exec(context.Background(), "CREATE TABLE IF NOT EXISTS practicum.metrics"+
 		"(id varchar(40), type varchar(40), delta integer, value double precision)")
 	return &PostgreStorage{
 		conn:     *connection,
@@ -86,28 +86,28 @@ func (s *PostgreStorage) AddMetricsBatch(metrics []common.Metric) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
+	// defer cancel()
 
-	tx, err := s.conn.Begin(ctx)
+	tx, err := s.conn.Begin(context.Background())
 	if err != nil {
 		return err
 	}
 
 	for _, v := range metrics {
-		_, err := tx.Exec(ctx, "delete from practicum.metrics where id = $1", v.ID)
+		_, err := tx.Exec(context.Background(), "delete from practicum.metrics where id = $1", v.ID)
 		if err != nil {
-			tx.Rollback(ctx)
+			tx.Rollback(context.Background())
 			return err
 		}
-		_, err = tx.Exec(ctx, "insert into practicum.metrics (id, type, delta, value) values ($1, $2, $3, $4)", v.ID, v.MType, v.Delta, v.Value)
+		_, err = tx.Exec(context.Background(), "insert into practicum.metrics (id, type, delta, value) values ($1, $2, $3, $4)", v.ID, v.MType, v.Delta, v.Value)
 		if err != nil {
-			tx.Rollback(ctx)
+			tx.Rollback(context.Background())
 			return err
 		}
 	}
 
-	return tx.Commit(ctx)
+	return tx.Commit(context.Background())
 }
 
 func (s *PostgreStorage) GetGaugeMetric(name string) (float64, bool) {
