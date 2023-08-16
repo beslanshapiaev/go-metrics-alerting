@@ -25,7 +25,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// comment 2
+// comment 222
 type MetricServer struct {
 	storage       storage.MetricStorage
 	router        *mux.Router
