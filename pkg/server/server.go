@@ -95,7 +95,9 @@ func (s *MetricServer) handleMetricUpdates(w http.ResponseWriter, r *http.Reques
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	m, err := json.Marshal(metrics[0])
 	w.WriteHeader(http.StatusOK)
+	w.Write(m)
 }
 
 func (s *MetricServer) handleMetricUpdateJSON(w http.ResponseWriter, r *http.Request) {
