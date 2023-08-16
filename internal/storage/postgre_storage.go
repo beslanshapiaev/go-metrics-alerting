@@ -82,6 +82,9 @@ func (s *PostgreStorage) AddCounterMetric(name string, value int64) {
 }
 
 func (s *PostgreStorage) AddMetricsBatch(metrics []common.Metric) error {
+	if len(metrics) == 0 {
+		return nil
+	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -137,7 +140,7 @@ func (s *PostgreStorage) GetCounterMetric(name string) (int64, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	var err error
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	rows, err := s.conn.Query(ctx, "SELECT * FROM practicum.metrics where type = $1 and id = $2", "counter", name)

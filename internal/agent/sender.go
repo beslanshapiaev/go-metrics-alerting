@@ -36,6 +36,9 @@ func SendMetrics(gaugeMetrics []GaugeMetric, counterMetrics []CounterMetric) err
 }
 
 func SendMetricsBatch(metrics []common.Metric) error {
+	if len(metrics) == 0 {
+		return nil
+	}
 	data, err := json.Marshal(metrics)
 	if err != nil {
 		return fmt.Errorf("failed to marshal metrics %v", err)
