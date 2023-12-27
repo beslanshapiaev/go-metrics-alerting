@@ -35,6 +35,33 @@ func SendMetrics(gaugeMetrics []GaugeMetric, counterMetrics []CounterMetric) err
 	return nil
 }
 
+func SendMetricsBatch(metrics []common.Metric) error {
+	data, err := json.Marshal(metrics)
+	if err != nil {
+		return fmt.Errorf("failed to marshal metrics %v", err)
+	}
+
+	url := fmt.Sprintf("%s/updates/", serverAddress)
+	req, err := newGzipRequest("POST", "http://"+url, data)
+
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send HTTP request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to send metric to server. Response status: %s", resp.Status)
+	}
+	return nil
+}
+
 func sendMetric(metricType, metricName string, metricValue interface{}) error {
 	metric := common.Metric{
 		ID:    metricName,

@@ -5,6 +5,7 @@ package server
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,6 +20,7 @@ import (
 	"github.com/beslanshapiaev/go-metrics-alerting/common"
 	"github.com/beslanshapiaev/go-metrics-alerting/internal/middleware"
 	"github.com/beslanshapiaev/go-metrics-alerting/internal/storage"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/gorilla/mux"
 )
@@ -30,7 +32,10 @@ type MetricServer struct {
 	storeInterval time.Duration
 }
 
-func NewMetricServer(storage storage.MetricStorage) *MetricServer {
+var connectionString string
+
+func NewMetricServer(storage storage.MetricStorage, connString string) *MetricServer {
+	connectionString = connString
 	return &MetricServer{
 		storage: storage,
 		router:  mux.NewRouter(),
@@ -48,6 +53,43 @@ func (s *MetricServer) handleMetricUpdate(w http.ResponseWriter, r *http.Request
 	} else {
 		s.handleMetricUpdateForm(w, r)
 	}
+}
+
+func (s *MetricServer) handleMetricUpdates(w http.ResponseWriter, r *http.Request) {
+	var metrics []common.Metric
+
+	var reader io.Reader = r.Body
+
+	if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+		gzipReader, err := gzip.NewReader(r.Body)
+		if err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		defer gzipReader.Close()
+
+		var buf bytes.Buffer
+		teeReader := io.TeeReader(gzipReader, &buf)
+
+		data, err := io.ReadAll(teeReader)
+		if err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		r.Body = io.NopCloser(bytes.NewBuffer(data))
+		reader = &buf
+	}
+	err := json.NewDecoder(reader).Decode(&metrics)
+	if err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	err = s.storage.AddMetricsBatch(metrics)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (s *MetricServer) handleMetricUpdateJSON(w http.ResponseWriter, r *http.Request) {
@@ -266,14 +308,32 @@ func (s *MetricServer) handleMetricsList(w http.ResponseWriter, r *http.Request)
 	w.Write([]byte(html.String()))
 }
 
+func (s *MetricServer) handlePing(w http.ResponseWriter, r *http.Request) {
+	conn, err := pgx.Connect(context.Background(), connectionString)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "unable to connect database %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close(context.Background())
+	if err = conn.Ping(context.Background()); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func (s *MetricServer) Start(addr string) error {
 	s.router.Use(middleware.LoggingMiddleware)
 	s.router.Use(middleware.GzipMiddleware)
 	s.router.HandleFunc("/update/{type}/{name}/{value}", s.handleMetricUpdate).Methods("POST")
 	s.router.HandleFunc("/update/", s.handleMetricUpdate).Methods("POST")
+	s.router.HandleFunc("/updates/", s.handleMetricUpdates).Methods("POST")
 	s.router.HandleFunc("/value/{type}/{name}", s.handleMetricValue).Methods("GET")
 	s.router.HandleFunc("/value/", s.handleMetricValue).Methods("POST")
 	s.router.HandleFunc("/", s.handleMetricsList).Methods("GET")
+	s.router.HandleFunc("/ping", s.handlePing).Methods("GET")
+
 	fmt.Printf("Server is listening on %s\n", addr)
 
 	if s.storeInterval > 0 {

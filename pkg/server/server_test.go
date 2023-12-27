@@ -13,7 +13,7 @@ import (
 
 func TestHandleMetricUpdate_Gauge(t *testing.T) {
 	storage := storage.NewMemStorage("/tmp/metrics-db.json")
-	server := NewMetricServer(storage)
+	server := NewMetricServer(storage, "host=localhost port=5432 user=postgres password=4756 dbname=test sslmode=disable")
 
 	metricName := "TestGauge"
 	metricValue := "1.23"
@@ -40,7 +40,7 @@ func TestHandleMetricUpdate_Gauge(t *testing.T) {
 
 func TestHandleMetricUpdate_Counter(t *testing.T) {
 	storage := storage.NewMemStorage("/tmp/metrics-db.json")
-	server := NewMetricServer(storage)
+	server := NewMetricServer(storage, "host=localhost port=5432 user=postgres password=4756 dbname=test sslmode=disable")
 
 	metricName := "TestCounter"
 	metricValue := "42"
@@ -70,7 +70,7 @@ func TestHandleMetricUpdate_Counter(t *testing.T) {
 
 func TestHandleMetricUpdate_InvalidType(t *testing.T) {
 	storage := storage.NewMemStorage("/tmp/metrics-db.json")
-	server := NewMetricServer(storage)
+	server := NewMetricServer(storage, "host=localhost port=5432 user=postgres password=4756 dbname=test sslmode=disable")
 
 	metricName := "TestMetric"
 	metricValue := "42"
@@ -105,7 +105,7 @@ func TestHandleMetricUpdate_InvalidType(t *testing.T) {
 
 func TestHandleMetricUpdate_MissingName(t *testing.T) {
 	mockStorage := storage.NewMemStorage("/tmp/metrics-db.json")
-	server := NewMetricServer(mockStorage)
+	server := NewMetricServer(mockStorage, "host=localhost port=5432 user=postgres password=4756 dbname=test sslmode=disable")
 
 	metricValue := "42"
 	url := "/update/gauge/" + metricValue
@@ -122,7 +122,7 @@ func TestHandleMetricUpdate_MissingName(t *testing.T) {
 
 func TestHandleMetricUpdate_InvalidValue(t *testing.T) {
 	storage := storage.NewMemStorage("/tmp/metrics-db.json")
-	server := NewMetricServer(storage)
+	server := NewMetricServer(storage, "host=localhost port=5432 user=postgres password=4756 dbname=test sslmode=disable")
 
 	metricName := "TestMetric"
 	metricValue := "invalid"
