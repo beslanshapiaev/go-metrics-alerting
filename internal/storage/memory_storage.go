@@ -62,7 +62,7 @@ func (s *MemStorage) GetAllMetrics() map[string]interface{} {
 	defer s.mu.RUnlock()
 	return s.metrics
 }
-
+//comment
 func (s *MemStorage) SaveToFile() error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
